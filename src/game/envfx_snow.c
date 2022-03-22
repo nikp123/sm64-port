@@ -1,6 +1,7 @@
 #include <ultra64.h>
 
 #include "sm64.h"
+#include "dialog_ids.h"
 #include "game_init.h"
 #include "memory.h"
 #include "ingame_menu.h"
@@ -263,6 +264,22 @@ void envfx_update_snow_blizzard(s32 snowCylinderX, s32 snowCylinderY, s32 snowCy
     gSnowCylinderLastPos[2] = snowCylinderZ;
 }
 
+/*! Unused function. Checks whether a position is laterally within 3000 units
+ *  to the point (x: 3380, z: -520). Considering there is an unused blizzard
+ *  snow mode, this could have been used to check whether Mario is in a
+ *  'blizzard area'. In Cool Cool Mountain and Snowman's Land the area lies
+ *  near the starting point and doesn't seem meaningful. Notably, the point is
+ *  close to the entrance of SL, so maybe there were plans for an extra hint to
+ *  find it. The radius of 3000 units is quite large for that though, covering
+ *  more than half of the mirror room.
+ */
+UNUSED static s32 is_in_mystery_snow_area(s32 x, UNUSED s32 y, s32 z) {
+    if (sqr(x - 3380) + sqr(z + 520) < sqr(3000)) {
+        return 1;
+    }
+    return 0;
+}
+
 /**
  * Update the position of underwater snow particles. Since they are stationary,
  * they merely jump back into view when they are out of view.
@@ -324,15 +341,10 @@ void rotate_triangle_vertices(Vec3s vertex1, Vec3s vertex2, Vec3s vertex3, s16 p
  * 'index' in the buffer. The 3 input vertices represent the rotated triangle
  * around (0,0,0) that will be translated to snowflake positions to draw the
  * snowflake image.
- *
- * TODO: (Scrub C)
  */
 void append_snowflake_vertex_buffer(Gfx *gfx, s32 index, Vec3s vertex1, Vec3s vertex2, Vec3s vertex3) {
     s32 i = 0;
     Vtx *vertBuf = (Vtx *) alloc_display_list(15 * sizeof(Vtx));
-#ifdef VERSION_EU
-    Vtx *p;
-#endif
 
     if (vertBuf == NULL) {
         return;
@@ -340,43 +352,19 @@ void append_snowflake_vertex_buffer(Gfx *gfx, s32 index, Vec3s vertex1, Vec3s ve
 
     for (i = 0; i < 15; i += 3) {
         vertBuf[i] = gSnowTempVtx[0];
-#ifdef VERSION_EU
-        p = vertBuf;
-        p += i;
-        p[0].v.ob[0] = gEnvFxBuffer[index + i / 3].xPos + vertex1[0];
-        p[0].v.ob[1] = gEnvFxBuffer[index + i / 3].yPos + vertex1[1];
-        p[0].v.ob[2] = gEnvFxBuffer[index + i / 3].zPos + vertex1[2];
-#else
-        vertBuf[i].v.ob[0] = gEnvFxBuffer[index + i / 3].xPos + vertex1[0];
-        vertBuf[i].v.ob[1] = gEnvFxBuffer[index + i / 3].yPos + vertex1[1];
-        vertBuf[i].v.ob[2] = gEnvFxBuffer[index + i / 3].zPos + vertex1[2];
-#endif
+        (vertBuf + i)->v.ob[0] = (gEnvFxBuffer + (index + i / 3))->xPos + vertex1[0];
+        (vertBuf + i)->v.ob[1] = (gEnvFxBuffer + (index + i / 3))->yPos + vertex1[1];
+        (vertBuf + i)->v.ob[2] = (gEnvFxBuffer + (index + i / 3))->zPos + vertex1[2];
 
         vertBuf[i + 1] = gSnowTempVtx[1];
-#ifdef VERSION_EU
-        p = vertBuf;
-        p += i;
-        p[1].v.ob[0] = gEnvFxBuffer[index + i / 3].xPos + vertex2[0];
-        p[1].v.ob[1] = gEnvFxBuffer[index + i / 3].yPos + vertex2[1];
-        p[1].v.ob[2] = gEnvFxBuffer[index + i / 3].zPos + vertex2[2];
-#else
-        vertBuf[i + 1].v.ob[0] = gEnvFxBuffer[index + i / 3].xPos + vertex2[0];
-        vertBuf[i + 1].v.ob[1] = gEnvFxBuffer[index + i / 3].yPos + vertex2[1];
-        vertBuf[i + 1].v.ob[2] = gEnvFxBuffer[index + i / 3].zPos + vertex2[2];
-#endif
+        (vertBuf + i + 1)->v.ob[0] = (gEnvFxBuffer + (index + i / 3))->xPos + vertex2[0];
+        (vertBuf + i + 1)->v.ob[1] = (gEnvFxBuffer + (index + i / 3))->yPos + vertex2[1];
+        (vertBuf + i + 1)->v.ob[2] = (gEnvFxBuffer + (index + i / 3))->zPos + vertex2[2];
 
         vertBuf[i + 2] = gSnowTempVtx[2];
-#ifdef VERSION_EU
-        p = vertBuf;
-        p += i;
-        p[2].v.ob[0] = gEnvFxBuffer[index + i / 3].xPos + vertex3[0];
-        p[2].v.ob[1] = gEnvFxBuffer[index + i / 3].yPos + vertex3[1];
-        p[2].v.ob[2] = gEnvFxBuffer[index + i / 3].zPos + vertex3[2];
-#else
-        vertBuf[i + 2].v.ob[0] = gEnvFxBuffer[index + i / 3].xPos + vertex3[0];
-        vertBuf[i + 2].v.ob[1] = gEnvFxBuffer[index + i / 3].yPos + vertex3[1];
-        vertBuf[i + 2].v.ob[2] = gEnvFxBuffer[index + i / 3].zPos + vertex3[2];
-#endif
+        (vertBuf + i + 2)->v.ob[0] = (gEnvFxBuffer + (index + i / 3))->xPos + vertex3[0];
+        (vertBuf + i + 2)->v.ob[1] = (gEnvFxBuffer + (index + i / 3))->yPos + vertex3[1];
+        (vertBuf + i + 2)->v.ob[2] = (gEnvFxBuffer + (index + i / 3))->zPos + vertex3[2];
     }
 
     gSPVertex(gfx, VIRTUAL_TO_PHYSICAL(vertBuf), 15, 0);
@@ -476,7 +464,7 @@ Gfx *envfx_update_snow(s32 snowMode, Vec3s marioPos, Vec3s camFrom, Vec3s camTo)
 Gfx *envfx_update_particles(s32 mode, Vec3s marioPos, Vec3s camTo, Vec3s camFrom) {
     Gfx *gfx;
 
-    if (get_dialog_id() != -1) {
+    if (get_dialog_id() != DIALOG_NONE) {
         return NULL;
     }
 

@@ -19,6 +19,7 @@
 #include "gfx/gfx_psp.h"
 #include "gfx/gfx_dc.h"
 #include "gfx/gfx_sdl.h"
+#include "gfx/gfx_dummy.h"
 
 #include "audio/audio_api.h"
 #include "audio/audio_psp.h"
@@ -52,11 +53,11 @@ const char _srcver[] __attribute__((section (".version"), used)) = MODULE_NAME "
 
 #define CONFIG_FILE "sm64config.txt"
 
-OSMesg D_80339BEC;
+OSMesg gMainReceivedMesg;
 OSMesgQueue gSIEventMesgQueue;
 
 s8 gResetTimer;
-s8 D_8032C648;
+s8 gNmiResetBarsTimer;
 s8 gDebugLevelSelect;
 s8 gShowProfiler;
 s8 gShowDebugText;
@@ -79,7 +80,7 @@ void set_vblank_handler(UNUSED s32 index, UNUSED struct VblankHandler *handler, 
 static uint8_t inited = 0;
 
 #include "game/game_init.h" // for gGlobalTimer
-void send_display_list(struct SPTask *spTask) {
+void exec_display_list(struct SPTask *spTask) {
     if (!inited) {
         return;
     }
@@ -103,7 +104,7 @@ void send_display_list(struct SPTask *spTask) {
 #ifdef ME_EXEC
 #include "melib.h"
 static struct Job j __attribute__((aligned(64)));
-#else 
+#else
 typedef int JobData;
 #endif
 
@@ -269,14 +270,13 @@ void *main_pc_pool = NULL;
 void *main_pc_pool_gd = NULL;
 #endif
 void main_func(void) {
-#if !(defined(TARGET_DC) || defined(TARGET_PSP))
-    static u32 pool[0x165000/8 / 4 * sizeof(void *) * 2];
+#ifdef USE_SYSTEM_MALLOC
+    main_pool_init();
+    gGfxAllocOnlyPool = alloc_only_pool_init();
 #else
-    static u8 pool[0x165000+0x70800] __attribute__((aligned(4)));
-    main_pc_pool = &pool;
-    main_pc_pool_gd = &pool[0x165000];
-#endif
+    static u64 pool[0x165000/8 / 4 * sizeof(void *)];
     main_pool_init(pool, pool + sizeof(pool) / sizeof(pool[0]));
+#endif
     gEffectsMemoryPool = mem_pool_init(0x4000, MEMORY_POOL_LEFT);
 
     configfile_load(CONFIG_FILE);
@@ -304,13 +304,16 @@ void main_func(void) {
     #else
         wm_api = &gfx_sdl;
     #endif
+#elif defined(ENABLE_GFX_DUMMY)
+    rendering_api = &gfx_dummy_renderer_api;
+    wm_api = &gfx_dummy_wm_api;
 #endif
 
     gfx_init(wm_api, rendering_api, "Super Mario 64 PC-Port", configFullscreen);
-    
+
     wm_api->set_fullscreen_changed_callback(on_fullscreen_changed);
     wm_api->set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up);
-    
+
 #if HAVE_WASAPI
     if (audio_api == NULL && audio_wasapi.init()) {
         audio_api = &audio_wasapi;
