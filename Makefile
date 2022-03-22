@@ -138,7 +138,7 @@ ifeq ($(VERSION),sh)
   VERSION_DEF := VERSION_SH
   GRUCODE_DEF := F3D_NEW
 # TODO: GET RID OF THIS!!! We should mandate assets for Shindou like EU but we dont have the addresses extracted yet so we'll just pretend you have everything extracted for now.
-  NOEXTRACT := 1 
+  NOEXTRACT := 1
 else
   $(error unknown version "$(VERSION)")
 endif
@@ -572,7 +572,7 @@ ifeq ($(ENABLE_OPENGL),1)
     GFX_LDFLAGS += -lGL -lSDL2
   endif
   ifeq ($(TARGET_PSP),1)
-    GFX_LDFLAGS += -L$(PSPSDK_PREFIX)/lib src/pc/libME.a src/pc/gfx/libpspmath.a -lpspdebug  -lpspgu -lpspvfpu -lpspctrl -lpspge -lpspdisplay -lm -lpspsdk -lpsprtc -lpspaudio -lpsputility -lpspnet_inet -lpsppower -lc -lpspuser -lpspvram  
+    GFX_LDFLAGS += -L$(PSPSDK_PREFIX)/lib src/pc/libME.a src/pc/gfx/libpspmath.a -lpspdebug -lpspdisplay -lpspgu -lpspge -lpspsdk -lpspctrl -lpspaudio -lpsppower
   endif
   ifeq ($(TARGET_DC),1)
     GFX_CFLAGS  += -Isrc/pc/audio/aldc2
